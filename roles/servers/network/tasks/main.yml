@@ -1,0 +1,113 @@
+---
+- name: "Configure MAC Pool Fabric A"
+  vars:
+  # Create an anchor for login_info that can be used throughout the file
+    login_info: &login_info
+      hostname: "{{ hostname }}"
+      username: "{{ username | default(omit) }}"
+      password: "{{ password | default('password') }}"
+      state: "{{ state | default(omit) }}"
+  cisco.ucs.ucs_mac_pool:
+    <<: *login_info
+    name: mac-pool-a
+    org_dn: org-root/org-{{ org }}
+    first_addr: 00:25:B5:DE:0A:00
+    last_addr: 00:25:B5:DE:0A:FF
+  tags: mac_pool
+- name: "Configure MAC Pool Fabric B"
+  cisco.ucs.ucs_mac_pool:
+    <<: *login_info
+    name: mac-pool-b
+    org_dn: org-root/org-{{ org }}
+    first_addr: 00:25:B5:DE:0B:00
+    last_addr: 00:25:B5:DE:0B:FF
+  tags: mac_pool
+- name: "Configure MAC Pool Fabric A-B"
+  cisco.ucs.ucs_mac_pool:
+    <<: *login_info
+    name: mac-pool-ab
+    org_dn: org-root/org-{{ org }}
+    first_addr: 00:25:B5:DE:0C:00
+    last_addr: 00:25:B5:DE:0C:FF
+  tags: mac_pool
+- name: "Configure Management VLAN"
+  cisco.ucs.ucs_vlans:
+    <<: *login_info
+    name: Management
+    fabric: common
+    id: "{{ mgmt_vlan }}"
+- name: "Configure vMotion VLAN"
+  cisco.ucs.ucs_vlans:
+    <<: *login_info
+    name: vMotion
+    fabric: common
+    id: "{{ vmotion_vlan }}"
+- name: "Configure PXEBoot VLAN"
+  cisco.ucs.ucs_vlans:
+    <<: *login_info
+    name: PXEBoot
+    fabric: common
+    native: no
+    id: "{{ pxeboot_vlan }}"
+- name: "Configure MGMT vNIC Template for {{ template_name }} Service Profile Template"
+  cisco.ucs.ucs_vnic_template:
+    <<: *login_info
+    name: vNIC-mgmt
+    description: "vNIC-MGMT ESX"
+    fabric: A-B
+    template_type: "updating-template"
+    mac_pool: mac-pool-ab
+    org_dn: org-root/org-{{ org }}
+    vlans_list:
+    - name: PXEBoot
+      native: 'yes'
+    - name: Management
+      native: 'no'
+- name: "Configure vNIC-A Template for {{ template_name }} Service Profile Template"
+  cisco.ucs.ucs_vnic_template:
+    <<: *login_info
+    name: vNIC-A
+    description: "vNIC-A ESX"
+    fabric: A
+    template_type: "updating-template"
+    mac_pool: mac-pool-a
+    org_dn: org-root/org-{{ org }}
+    vlans_list:
+    - name: PXEBoot
+      native: 'yes'
+    - name: Management
+      native: 'no'
+    - name: vMotion
+      native: 'no'
+- name: "Configure vNIC-B Template for {{ template_name }} Service Profile Template"
+  cisco.ucs.ucs_vnic_template:
+    <<: *login_info
+    name: vNIC-B
+    description: "vNIC-B ESX"
+    fabric: B
+    template_type: "updating-template"
+    mac_pool: mac-pool-b
+    org_dn: org-root/org-{{ org }}
+    vlans_list:
+    - name: PXEBoot
+      native: 'yes'
+    - name: Management
+      native: 'no'
+    - name: vMotion
+      native: 'no'
+- name: Configure LAN Connectivity Policy
+  cisco.ucs.ucs_lan_connectivity:
+    <<: *login_info
+    name: ESXi-LAN-Policy
+    org_dn: org-root/org-{{ org }}
+    vnic_list:
+    - name: vNIC-mgmt
+      vnic_template: vNIC-mgmt
+      adapter_policy: VMWare
+    - name: vNIC-A
+      vnic_template: vNIC-A
+      adapter_policy: VMWare
+    - name: vNIC-B
+      vnic_template: vNIC-B
+      adapter_policy: VMWare
+

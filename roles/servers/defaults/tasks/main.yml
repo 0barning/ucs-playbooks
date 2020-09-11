@@ -1,0 +1,159 @@
+---
+- name: Add UCS Organization
+  vars:
+    # Create an anchor for login_info that can be used throughout the file
+    login_info: &login_info
+      hostname: "{{ hostname }}"
+      username: "{{ username | default(omit) }}"
+      password: "{{ password | default('password') }}"
+      state: "{{ state | default(omit) }}"
+  cisco.ucs.ucs_org:
+    <<: *login_info
+    org_name: "{{ org }}"
+    parent_org_path: root
+    description: "{{ org }} Organisation"
+    state: present
+    delegate_to: localhost
+- name: "Configure default IP Pool"
+  cisco.ucs.ucs_ip_pool:
+    <<: *login_info
+    name: ext-mgmt
+    org_dn: org-root/org-{{ org }}
+    ipv4_blocks:
+      - first_addr: 10.61.124.240
+        last_addr: 10.61.124.248
+        subnet_mask: 255.255.255.0
+        default_gw: 10.61.124.1
+  tags: ip_pool
+- name: "Configure default UUID Pool"
+  cisco.ucs.ucs_uuid_pool:
+    <<: *login_info
+    name: default
+    org_dn: org-root/org-{{ org }}
+    first_uuid: 0000-000000000001
+    last_uuid: 0000-000000000078
+  tags: uuid_pool
+- name: "Configure default Boot Order Policy"
+  cisco.ucs.ucs_managed_objects:
+    <<: *login_info
+    objects:
+      - module: ucsmsdk.mometa.lsboot.LsbootPolicy
+        class: LsbootPolicy
+        properties:
+          parent_mo_or_dn: org-root/org-{{ org }}
+          descr: "LAN boot indien de Lun nog niet in gebruik is" 
+          boot_mode: legacy
+          enforce_vnic_name: 'yes'
+          name: UCS-SAN-PXE
+          reboot_on_update: 'no'
+        children:
+          - module: ucsmsdk.mometa.lsboot.LsbootVirtualMedia
+            class: LsbootVirtualMedia
+            properties:
+              access: read-only-remote-cimc
+              lun_id: '0'
+              order: '1'
+          - module: ucsmsdk.mometa.lsboot.LsbootSan
+            class: LsbootSan
+            properties:
+              order: '2'
+            children:
+              - module: ucsmsdk.mometa.lsboot.LsbootSanCatSanImage
+                class: LsbootSanCatSanImage
+                properties: 
+                  type: "primary"
+                  vnic_name: "vHBA-a"
+                children:
+                  - module: ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath
+                    class: LsbootSanCatSanImagePath
+                    properties:
+                      lun: "0" 
+                      type: "primary" 
+                      wwn: "20:0A:00:A0:98:5F:2D:98"
+                  - module: ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath
+                    class: LsbootSanCatSanImagePath
+                    properties:
+                      lun: "0" 
+                      type: "secondary" 
+                      wwn: "20:0B:00:A0:98:5F:2D:98"
+              - module: ucsmsdk.mometa.lsboot.LsbootSanCatSanImage
+                class: LsbootSanCatSanImage
+                properties: 
+                  type: "secondary"
+                  vnic_name: "vHBA-b"
+                children:
+                  - module: ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath
+                    class: LsbootSanCatSanImagePath
+                    properties:
+                      lun: "0" 
+                      type: "primary" 
+                      wwn: "20:0D:00:A0:98:5F:2D:98"
+                  - module: ucsmsdk.mometa.lsboot.LsbootSanCatSanImagePath
+                    class: LsbootSanCatSanImagePath
+                    properties:
+                      lun: "0" 
+                      type: "secondary" 
+                      wwn: "20:0E:00:A0:98:5F:2D:98"
+          - module: ucsmsdk.mometa.lsboot.LsbootLan
+            class: LsbootLan
+            properties:
+              order: '3'
+              prot: "pxe"
+            children:
+              - module: ucsmsdk.mometa.lsboot.LsbootLanImagePath
+                class: LsbootLanImagePath
+                properties: 
+                  type: "primary"
+                  vnic_name: "vNIC-mgmt"
+  tags: boot_order
+- name: "Configure default Server Pool"
+  cisco.ucs.ucs_managed_objects:
+    <<: *login_info
+    objects:
+      - module: ucsmsdk.mometa.compute.ComputePool
+        class: ComputePool
+        properties:
+          parent_mo_or_dn: org-root/org-{{ org }}
+          name: BladePool
+        children:
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '1'
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '2'
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '3'
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '4'
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '5'
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '6'
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '7'
+          - module: ucsmsdk.mometa.compute.ComputePooledSlot
+            class: ComputePooledSlot
+            properties:
+              chassis_id: '1'
+              slot_id: '8'
+  tags: server_pool

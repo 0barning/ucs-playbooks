@@ -1,0 +1,75 @@
+---
+- name: "Configure VSAN-A"
+  vars:
+  # Create an anchor for login_info that can be used throughout the file
+    login_info: &login_info
+      hostname: "{{ hostname }}"
+      username: "{{ username | default(omit) }}"
+      password: "{{ password | default('password') }}"
+      state: "{{ state | default(omit) }}"
+  cisco.ucs.ucs_vsans:
+    <<: *login_info
+    name: VSAN-A
+    fabric: A
+    vsan_id: '101'
+    vlan_id: '101'
+- name: Configure VSAN-B
+  cisco.ucs.ucs_vsans:
+    <<: *login_info
+    name: VSAN-B
+    fabric: B
+    vsan_id: '102'
+    vlan_id: '102'
+- name: Configure WWNN/WWPN pools
+  cisco.ucs.ucs_wwn_pool:
+    <<: *login_info
+    name: WWNN-Pool
+    org_dn: org-root/org-{{ org }}
+    purpose: node
+    first_addr: 20:00:00:25:B5:48:00:00
+    last_addr: 20:00:00:25:B5:48:00:0F
+- cisco.ucs.ucs_wwn_pool:
+    <<: *login_info
+    name: WWPN-Pool-A
+    org_dn: org-root/org-{{ org }}
+    purpose: port
+    order: sequential
+    first_addr: 20:00:00:25:B5:48:0A:00
+    last_addr: 20:00:00:25:B5:48:0A:0F
+- cisco.ucs.ucs_wwn_pool:
+    <<: *login_info
+    name: WWPN-Pool-B
+    org_dn: org-root/org-{{ org }}
+    purpose: port
+    order: sequential
+    first_addr: 20:00:00:25:B5:48:0B:00
+    last_addr: 20:00:00:25:B5:48:0B:0F
+- name: Configure vHBA-A template
+  cisco.ucs.ucs_vhba_template:
+    <<: *login_info
+    name: vHBA-a
+    org_dn: org-root/org-{{ org }}
+    fabric: A
+    vsan: VSAN-A
+    wwpn_pool: WWPN-Pool-A
+- name: Configure vHBA-B template
+  cisco.ucs.ucs_vhba_template:
+    <<: *login_info
+    name: vHBA-b
+    org_dn: org-root/org-{{ org }}
+    fabric: B
+    vsan: VSAN-B
+    wwpn_pool: WWPN-Pool-B
+- name: Configure SAN Connectivity Policy
+  cisco.ucs.ucs_san_connectivity:
+    <<: *login_info
+    name: SAN-Conn
+    org_dn: org-root/org-{{ org }}
+    wwnn_pool: WWNN-Pool
+    vhba_list:
+    - name: vHBA-a
+      vhba_template: vHBA-a
+      adapter_policy: VMware
+    - name: vHBA-b
+      vhba_template: vHBA-b
+      adapter_policy: VMware

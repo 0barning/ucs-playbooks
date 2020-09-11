@@ -1,0 +1,45 @@
+---
+- name: "Configure {{ template_name }} Service Profile Template"
+  vars:
+    # Create an anchor for login_info that can be used throughout the file
+    login_info: &login_info
+      hostname: "{{ hostname }}"
+      username: "{{ username | default(omit) }}"
+      password: "{{ password | default('password') }}"
+      state: "{{ state | default(omit) }}"
+  cisco.ucs.ucs_service_profile_template:
+    <<: *login_info
+    name: "{{ template_name }}"
+    org_dn: org-root/org-{{ org }}
+    template_type: updating-template
+    boot_policy: UCS-SAN-PXE
+    server_pool: BladePool
+    lan_connectivity_policy: ESXi-LAN-Policy
+    san_connectivity_policy: SAN-Conn
+    host_firmware_package: 4.1.2a
+- name: Configure vnic and vhba order
+  cisco.ucs.ucs_sp_vnic_order:
+    org_dn: org-root/org-{{ org }}
+    <<: *login_info
+    sp_name: "{{ template_name }}"
+    vnics:
+    - name: vNIC-mgmt
+      admin_vcon: '1'
+      order: '1'
+      transport: ethernet
+    - name: vNIC-A
+      admin_vcon: '1'
+      order: '2'
+      transport: ethernet
+    - name: vNIC-B
+      admin_vcon: '1'
+      order: '3'
+      transport: ethernet
+    - name: vHBA-a
+      admin_vcon: '2'
+      order: '1'
+      transport: fc
+    - name: vHBA-b
+      admin_vcon: '2'
+      order: '2'
+      transport: fc

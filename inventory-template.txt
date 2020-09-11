@@ -1,0 +1,6 @@
+[ucs]
+10.0.0.10
+
+[ucs:vars]
+username=admin
+password=Cisco123
