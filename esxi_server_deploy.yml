@@ -14,9 +14,10 @@
     # The UCS domain hostname can be set in the inventory or on the command line as needed
     hostname: "{{ inventory_hostname }}"
     # Names for Service Profiles, Policies, and number of Profiles
-    template_name: ESX-M3
-    org: KVM
+    template_name: OBA-M3
+    org: OBA
     mgmt_vlan: 98
+    mgmt99_vlan: 99
     vmotion_vlan: 37
     pxeboot_vlan: 1010
   tasks:

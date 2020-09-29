@@ -33,9 +33,15 @@
 - name: "Configure Management VLAN"
   cisco.ucs.ucs_vlans:
     <<: *login_info
-    name: Management
+    name: VLAN98
     fabric: common
     id: "{{ mgmt_vlan }}"
+- name: "Configure Management VLAN 99"
+  cisco.ucs.ucs_vlans:
+    <<: *login_info
+    name: VLAN99
+    fabric: common
+    id: "{{ mgmt99_vlan }}"
 - name: "Configure vMotion VLAN"
   cisco.ucs.ucs_vlans:
     <<: *login_info
@@ -75,9 +81,11 @@
     vlans_list:
     - name: PXEBoot
       native: 'yes'
-    - name: Management
+    - name: VLAN98
       native: 'no'
     - name: vMotion
+      native: 'no'
+    - name: VLAN99
       native: 'no'
 - name: "Configure vNIC-B Template for {{ template_name }} Service Profile Template"
   cisco.ucs.ucs_vnic_template:
@@ -91,9 +99,11 @@
     vlans_list:
     - name: PXEBoot
       native: 'yes'
-    - name: Management
+    - name: VLAN98
       native: 'no'
     - name: vMotion
+      native: 'no'
+    - name: VLAN99
       native: 'no'
 - name: Configure LAN Connectivity Policy
   cisco.ucs.ucs_lan_connectivity:
