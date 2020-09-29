@@ -15,7 +15,7 @@
     hostname: "{{ inventory_hostname }}"
     # Names for Service Profiles, Policies, and number of Profiles
     template_name: ESX-M3
-    org: M3
+    org: KVM
     mgmt_vlan: 98
     vmotion_vlan: 37
     pxeboot_vlan: 1010
